@@ -1,0 +1,57 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+*.egg
+*.log
+
+# === Virtual environments ===
+venv/
+env/
+.venv/
+ENV/
+*.env
+*.venv
+pip-wheel-metadata/
+site-packages/
+
+# === Jupyter Notebooks ===
+.ipynb_checkpoints/
+
+# === Data files (if large or local only) ===
+data/
+datasets/
+# *.csv
+*.xlsx
+*.xls
+*.sav
+*.pkl
+*.h5
+*.db
+*.zip
+*.tar
+*.gz
+
+# === ML experiment artifacts ===
+models/
+checkpoints/
+outputs/
+runs/
+logs/
+*.joblib
+
+# === IDE and OS files ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# === Caches ===
+.cache/
+__pycache__/
+*.pytest_cache/
+*.mypy_cache/
+*.ipynb_checkpoints/

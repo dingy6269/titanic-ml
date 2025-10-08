@@ -3,10 +3,6 @@ import pandas as pd
 import numpy as np
 import random as rnd
 
-# visualization
-import seaborn as sns
-import matplotlib.pyplot as plt
-
 # machine learning
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC, LinearSVC
@@ -18,9 +14,7 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 
-
 DO_PLOTS = False
-DO_HEAVY_PLOTS = False
 
 
 train_df = pd.read_csv("train.csv")
@@ -34,6 +28,36 @@ combine = [train_df, test_df]
 # print(train_df.columns.values)
 
 # print(train_df.head())
+
+
+if DO_PLOTS:
+    import seaborn as sns, matplotlib.pyplot as plt
+
+    sns.set_theme()
+    
+    # First grid
+    g = sns.FacetGrid(train_df, col='Survived')
+    # distribution between Age and amount
+    g.map(plt.hist, 'Age', bins = 20)
+    plt.show()
+    
+    # Second grid
+    grid = sns.FacetGrid(train_df, col='Survived', row='Pclass', aspect=1.6)
+    grid.map(plt.hist, 'Age', alpha=.5, bins=20)    
+    plt.show()
+    
+    # Third grid 
+    grid = sns.FacetGrid(train_df, row='Embarked', aspect=1.6)
+    grid.map(sns.pointplot, 'Pclass', 'Survived', 'Sex', palette='deep')
+    grid.add_legend()
+    plt.show()
+
+    # Fourth grid
+    grid = sns.FacetGrid(train_df, row='Embarked', col='Survived', aspect=1.6)
+    grid.map(sns.barplot, 'Sex', 'Fare', alpha=0.5)
+    grid.add_legend()
+    plt.show()
+
 
 guess_ages = np.zeros((2, 3))
 
@@ -56,7 +80,7 @@ for df in combine:
     for i in range(0, 2):
         # including 0, not including 3
         for j in range(0, 3):
-            # there sex and pclass are matched
+            # there sex and pclass are matche
             # pick age and drop nans
             # it is ROWS not ROW
             # btw got KeyError here

@@ -22,85 +22,49 @@ test_df = pd.read_csv("test.csv")
 
 combine = [train_df, test_df]
 
-# print(train_df.columns.values)
-
-# dtype object there
-# print(train_df.columns.values)
-
-# print(train_df.head())
-
-
 if DO_PLOTS:
     import seaborn as sns, matplotlib.pyplot as plt
 
     sns.set_theme()
     
-    # First grid
     g = sns.FacetGrid(train_df, col='Survived')
-    # distribution between Age and amount
     g.map(plt.hist, 'Age', bins = 20)
     plt.show()
     
-    # Second grid
     grid = sns.FacetGrid(train_df, col='Survived', row='Pclass', aspect=1.6)
     grid.map(plt.hist, 'Age', alpha=.5, bins=20)    
     plt.show()
     
-    # Third grid 
     grid = sns.FacetGrid(train_df, row='Embarked', aspect=1.6)
     grid.map(sns.pointplot, 'Pclass', 'Survived', 'Sex', palette='deep')
     grid.add_legend()
     plt.show()
 
-    # Fourth grid
     grid = sns.FacetGrid(train_df, row='Embarked', col='Survived', aspect=1.6)
     grid.map(sns.barplot, 'Sex', 'Fare', alpha=0.5)
     grid.add_legend()
     plt.show()
 
 
-guess_ages = np.zeros((2, 3))
-
 for df in combine: 
     title_mapping = {"Mr" : 1, "Miss": 2, "Mrs": 3, "Master": 4, "Rare": 5} 
     title_replacement = ["Lady","Countess","Capt","Col","Don","Dr","Major","Rev","Sir","Jonkheer","Dona"]
 
-    # name to only prefix like Mr.
     df["Title"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
     
-    # replacing all the "rare" types
     df["Title"] = df["Title"].replace(title_replacement, "Rare")
     df["Title"] = df["Title"].replace({"Mlle":"Miss","Ms":"Miss","Mme":"Mrs"}) 
     
-    # mapping stuff
-    df["Title"] = df["Title"].map(title_mapping)
-    df["Title"] = df["Title"].fillna(0).astype(int)
+    df["Title"] = df["Title"].map(title_mapping).fillna(0).astype(int)
     df["Sex"] = df["Sex"].map({ 'female': 1, 'male': 0 }).astype(int)
     
+    
+    guess_ages = np.zeros((2, 3))
+    
     for i in range(0, 2):
-        # including 0, not including 3
         for j in range(0, 3):
-            # there sex and pclass are matche
-            # pick age and drop nans
-            # it is ROWS not ROW
-            # btw got KeyError here
             guess_df = df[(df['Sex'] == i) & (df['Pclass'] == j + 1)]['Age'].dropna()
-            
-            age_mean = guess_df.mean()
-            age_std = guess_df.std()
-            age_guess = rnd.uniform(age_mean - age_std, age_mean + age_std)
-            
-            # print(f"mean: {age_mean}")
-            # print(f"std: {age_std}")
-            # print(f"age_guess: {age_guess}")
-            
             age_guess = guess_df.median()
-            
-            # print(f"age_guess: {age_guess}")
-            
-            # print(guess_ages)
-            
-            # To round the imputed age to the nearest 0.5. (reduce wierd numbers)
             guess_ages[i, j] = int( age_guess / 0.5 + 0.5) * 0.5
     
     for i in range(0, 2):
@@ -112,10 +76,57 @@ for df in combine:
     df['Age'] = df['Age'].fillna(0).astype(int)
             
             
-print(train_df.head())
 
-# 2 rows, 3 columns
+# more features
+for df in combine:
+    df["FamilySize"] = df["SibSp"] + df["Parch"] + 1
+    df["IsAlone"] = (df["FamilySize"] == 1).astype(int)
+    df["Age*Class"] = df["Age"] * df["Pclass"]
 
 
+for df in combine:
+    embarked_mapping = {"S": 0, "C": 1, "Q": 2}
+    
+    df["Embarked"] = df["Embarked"].fillna(df["Embarked"].mode()[0])
+    df["Embarked"] = df["Embarked"].map(embarked_mapping).astype(int)
 
-# print(train_df[['Pclass', 'Survived']].groupby(['Pclass'], as_index=False).mean().sort_values(by='Survived', ascending=False))
+
+test_df["Fare"] = test_df["Fare"].fillna(test_df["Fare"].median())
+q1, q2, q3 = train_df["Fare"].quantile([0.25, 0.50, .75]).tolist()
+
+for df in combine:
+    df.loc[df["Fare"] <= q1, "Fare"] = 0
+    df.loc[(df["Fare"] > q1) & (df["Fare"] <= q2), "Fare"] = 1
+    df.loc[(df["Fare"] > q2) & (df["Fare"] <= q3), "Fare"] = 2
+    df.loc[df["Fare"] > q3, "Fare"] = 3
+    df["Fare"] = df["Fare"].astype(int)
+
+for df in combine:
+    df.drop(columns=["Ticket", "Cabin", "Name"], inplace=True)
+
+X = train_df.drop(columns=["Survived", "PassengerId"])
+y = train_df["Survived"]
+XTest = test_df.drop(columns=["PassengerId"])
+
+
+# from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+
+# model = SVC(kernel="sigmoid")
+model = RandomForestClassifier(
+    n_estimators=500,
+    max_depth=6,
+    random_state=42
+)
+
+model.fit(X, y)
+prediction = model.predict(XTest)
+
+submission = pd.DataFrame({
+    "PassengerId": test_df["PassengerId"],
+    "Survived": prediction
+})
+
+submission.to_csv("submission.csv", index=False)
+
+print("Wrote submission.csv")

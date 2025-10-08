@@ -1,43 +1,97 @@
+# data analysis and wrangling
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+import random as rnd
+
+# visualization
 import seaborn as sns
+import matplotlib.pyplot as plt
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+# machine learning
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, LinearSVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import Perceptron
+from sklearn.linear_model import SGDClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 
-train = pd.read_csv("train.csv")
-test = pd.read_csv("test.csv")
 
-# print(train.head(3))
+DO_PLOTS = False
+DO_HEAVY_PLOTS = False
 
-X = train.drop(columns=["Survived"])
-y = train['Survived']
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=True)
+train_df = pd.read_csv("train.csv")
+test_df = pd.read_csv("test.csv")
 
-print(type(X_train))
+combine = [train_df, test_df]
 
-X_train_num = X_train.select_dtypes(include=['int64', 'float64'])
-X_test_num = X_test.select_dtypes(include=['int64', 'float64'])
+# print(train_df.columns.values)
 
-scaler = StandardScaler()
-scaler.fit(X_train_num)
+# dtype object there
+# print(train_df.columns.values)
 
-X_train_scaled = scaler.transform(X_train_num)
-X_test_scaled = scaler.transform(X_test_num)
+# print(train_df.head())
 
-# print(X)
-# print(Y)
+guess_ages = np.zeros((2, 3))
 
-print("mean_: ", scaler.mean_)
-print("scale_: ", scaler.scale_)
+for df in combine: 
+    title_mapping = {"Mr" : 1, "Miss": 2, "Mrs": 3, "Master": 4, "Rare": 5} 
+    title_replacement = ["Lady","Countess","Capt","Col","Don","Dr","Major","Rev","Sir","Jonkheer","Dona"]
 
-print('До маштаб: ', X_train_num.mean(axis=0))
-print('После маштаб: ', X_train_scaled.mean(axis=0))
+    # name to only prefix like Mr.
+    df["Title"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
+    
+    # replacing all the "rare" types
+    df["Title"] = df["Title"].replace(title_replacement, "Rare")
+    df["Title"] = df["Title"].replace({"Mlle":"Miss","Ms":"Miss","Mme":"Mrs"}) 
+    
+    # mapping stuff
+    df["Title"] = df["Title"].map(title_mapping)
+    df["Title"] = df["Title"].fillna(0).astype(int)
+    df["Sex"] = df["Sex"].map({ 'female': 1, 'male': 0 }).astype(int)
+    
+    for i in range(0, 2):
+        # including 0, not including 3
+        for j in range(0, 3):
+            # there sex and pclass are matched
+            # pick age and drop nans
+            # it is ROWS not ROW
+            # btw got KeyError here
+            guess_df = df[(df['Sex'] == i) & (df['Pclass'] == j + 1)]['Age'].dropna()
+            
+            age_mean = guess_df.mean()
+            age_std = guess_df.std()
+            age_guess = rnd.uniform(age_mean - age_std, age_mean + age_std)
+            
+            # print(f"mean: {age_mean}")
+            # print(f"std: {age_std}")
+            # print(f"age_guess: {age_guess}")
+            
+            age_guess = guess_df.median()
+            
+            # print(f"age_guess: {age_guess}")
+            
+            # print(guess_ages)
+            
+            # To round the imputed age to the nearest 0.5. (reduce wierd numbers)
+            guess_ages[i, j] = int( age_guess / 0.5 + 0.5) * 0.5
+    
+    for i in range(0, 2):
+        for j in range(0, 3):
+            df.loc[df.Age.isnull() & (df.Sex == i) & df.Pclass == j + 1, \
+                'Age'] = guess_ages[i, j]
+            
+    
+    df['Age'] = df['Age'].fillna(0).astype(int)
+            
+            
+print(train_df.head())
 
-print('------')
+# 2 rows, 3 columns
 
-print(X_train_num.mean(axis=0))
-print(X_train_scaled.mean(axis=0))
+
+
+# print(train_df[['Pclass', 'Survived']].groupby(['Pclass'], as_index=False).mean().sort_values(by='Survived', ascending=False))

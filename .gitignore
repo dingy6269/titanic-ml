@@ -18,6 +18,9 @@ ENV/
 pip-wheel-metadata/
 site-packages/
 
+kaggle.json
+
+
 # === Jupyter Notebooks ===
 .ipynb_checkpoints/
 
